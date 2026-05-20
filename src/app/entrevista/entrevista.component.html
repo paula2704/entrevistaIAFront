@@ -1,0 +1,163 @@
+<div class="app-wrap">
+
+  <!-- PANEL IZQUIERDO -->
+  <div class="side-panel">
+    <div class="side-logo">TechInterview AI</div>
+
+    <div class="side-hero">
+      <svg viewBox="0 0 260 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="illustration">
+        <rect x="30" y="40" width="200" height="140" rx="16" fill="#F9DFC6" opacity="0.3"/>
+        <rect x="50" y="60" width="160" height="100" rx="10" fill="#F9DFC6" opacity="0.5"/>
+        <rect x="70" y="80" width="120" height="12" rx="6" fill="#FF8400" opacity="0.8"/>
+        <rect x="70" y="100" width="80" height="8" rx="4" fill="#8FA0D8" opacity="0.7"/>
+        <rect x="70" y="116" width="100" height="8" rx="4" fill="#8FA0D8" opacity="0.5"/>
+        <rect x="70" y="132" width="60" height="8" rx="4" fill="#8FA0D8" opacity="0.4"/>
+        <circle cx="195" cy="95" r="22" fill="#FF8400" opacity="0.9"/>
+        <path d="M185 95 L192 103 L205 88" stroke="#0B0829" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="55" cy="55" r="14" fill="#0B0829" opacity="0.15"/>
+        <circle cx="210" cy="165" r="10" fill="#FF8400" opacity="0.4"/>
+        <circle cx="40" cy="150" r="7" fill="#8FA0D8" opacity="0.5"/>
+      </svg>
+
+      <h2 class="side-title">Prepárate para tu próxima entrevista</h2>
+      <p class="side-sub">IA que evalúa tus respuestas como un entrevistador real</p>
+    </div>
+
+    <div class="side-steps">
+      <div class="step" [class.step-active]="etapa === 'configuracion'">
+        <span class="step-dot">1</span>
+        <span>Configura tu perfil</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.step-active]="etapa === 'pregunta'">
+        <span class="step-dot">2</span>
+        <span>Responde preguntas</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.step-active]="etapa === 'resultados'">
+        <span class="step-dot">3</span>
+        <span>Ver resultados</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DERECHO -->
+  <div class="main-panel">
+
+    <!-- ETAPA 1: Configuración -->
+    <div class="form-card" *ngIf="etapa === 'configuracion'">
+      <div class="form-header">
+        <h1>Configura tu entrevista</h1>
+        <p>Personaliza la sesión según tu perfil y objetivos</p>
+      </div>
+
+      <div class="form-group">
+        <label>Rol</label>
+        <select [(ngModel)]="rolSeleccionado" (ngModelChange)="onRolChange()">
+          <option value="">Selecciona un rol</option>
+          <option *ngFor="let rol of roles" [value]="rol">{{ rol }}</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nivel</label>
+          <select [(ngModel)]="nivelSeleccionado">
+            <option value="">Selecciona nivel</option>
+            <option *ngFor="let nivel of niveles" [value]="nivel">{{ nivel }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Preguntas</label>
+          <select [(ngModel)]="cantidadPreguntas">
+            <option *ngFor="let c of cantidades" [value]="c">{{ c }} pregunta{{ c > 1 ? 's' : '' }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="rolSeleccionado">
+        <label>Temas <span class="hint">máx. 5 — {{ temasSeleccionados.length }} seleccionados</span></label>
+        <div class="temas-grid">
+          <button
+            *ngFor="let tema of getTemas()"
+            class="tema-chip"
+            [class.tema-chip--activo]="temaSeleccionado(tema)"
+            [disabled]="!temaSeleccionado(tema) && temasSeleccionados.length >= 5"
+            (click)="toggleTema(tema)">
+            {{ tema }}
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-primary" [disabled]="!puedeIniciar()" (click)="iniciarEntrevista()">
+        Comenzar entrevista →
+      </button>
+    </div>
+
+    <!-- ETAPA 2: Pregunta -->
+    <div class="form-card" *ngIf="etapa === 'pregunta'">
+
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span class="badge-rol">{{ rolSeleccionado }} · {{ nivelSeleccionado }}</span>
+          <span class="progress-txt">{{ indicePregunta + 1 }} / {{ cantidadPreguntas }}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="(indicePregunta / cantidadPreguntas) * 100"></div>
+        </div>
+      </div>
+
+      <div class="cargando-wrap" *ngIf="cargando">
+        <div class="spinner"></div>
+        <p>{{ indicePregunta === 0 ? 'Generando tu pregunta...' : 'Evaluando y cargando siguiente...' }}</p>
+      </div>
+
+      <div *ngIf="!cargando">
+        <div class="form-header">
+          <h1>Pregunta {{ indicePregunta + 1 }}</h1>
+          <div class="temas-row">
+            <span class="tag" *ngFor="let tema of temasSeleccionados">{{ tema }}</span>
+          </div>
+        </div>
+
+        <div class="question-box">{{ preguntaActual }}</div>
+
+        <div class="form-group">
+          <label>Tu respuesta</label>
+          <textarea
+            [(ngModel)]="respuestaActual"
+            rows="7"
+            placeholder="Sé detallado y específico. Menciona herramientas, patrones o ejemplos concretos...">
+          </textarea>
+        </div>
+
+        <button class="btn-primary" [disabled]="!respuestaActual" (click)="enviarRespuesta()">
+          {{ indicePregunta + 1 === cantidadPreguntas ? 'Finalizar entrevista ✓' : 'Siguiente pregunta →' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ETAPA 3: Resultados -->
+    <div class="form-card resultados" *ngIf="etapa === 'resultados'">
+      <div class="form-header">
+        <h1>Resultados</h1>
+        <div class="badges-row">
+          <span class="badge-rol">{{ rolSeleccionado }} · {{ nivelSeleccionado }}</span>
+          <span class="tag" *ngFor="let tema of temasSeleccionados">{{ tema }}</span>
+        </div>
+      </div>
+
+      <div class="resultado-card" *ngFor="let item of sesion; let i = index">
+        <div class="resultado-num">Pregunta {{ i + 1 }}</div>
+        <div class="resultado-pregunta">{{ item.pregunta }}</div>
+        <div class="resultado-respuesta">
+          <strong>Tu respuesta:</strong> {{ item.respuesta }}
+        </div>
+        <pre class="resultado-feedback">{{ item.feedback }}</pre>
+      </div>
+
+      <button class="btn-primary" (click)="reiniciar()">Nueva entrevista →</button>
+    </div>
+
+  </div>
+</div>
